@@ -29,7 +29,7 @@ For a more comprehensive understanding of the deep learning aspects of c-GNF, pl
 
 ## User Guide
 
-This guide walks you through setting up the environment and utilizing `cGNF` model to anlysize your own dataset. For users who are new to Python, it is recommended to follow the instructions step by step. Experienced Python users can directly go to [Installing Necessary Packages](#installing-necessary-packages) section to download the `cGNF` modules, and then skip to [Setting up Dataset](#setting-up-dataset).
+This guide walks you through setting up the environment and utilizing `cGNF` model to analyze your own dataset. For users who are new to Python, it is recommended to follow the instructions step by step. Experienced Python users can directly go to [Installing Necessary Packages](#installing-necessary-packages) section to download the `cGNF` modules, and then skip to [Setting up Dataset](#setting-up-dataset).
 
 ### Tutorial Contents
 
