@@ -1,0 +1,71 @@
+import pandas as pd
+import numpy as np
+import torch  # Importing the PyTorch library, which provides tools for deep learning.
+import pickle  # Importing the pickle module, which allows to serialize and deserialize Python object structures.
+
+
+def process(path="", dataset_name="", dag_name="", test_size=0.2, cat_var=None, seed=None):
+
+    # Read the data file.
+    df = pd.read_csv(path + dataset_name + '.csv')
+
+    df.dropna(inplace=True)
+
+    # Imports the function 'train_test_split' from sklearn's model selection module.
+    from sklearn.model_selection import train_test_split
+    # Splits the DataFrame 'df' into a training set and a validation set. This function returns two dataframes: the training set and the validation set.
+    df_train, df_val = train_test_split(df, test_size= test_size, random_state=seed)
+
+    # Converts the training and validation datasets from pandas DataFrame to numpy arrays. These arrays will be used for further data processing.
+    df_trn, df_val = df_train.to_numpy(), df_val.to_numpy()
+
+    # Vertically stacks the training and validation arrays into one array. This combined array is used for calculating the mean and standard deviation for data standardization.
+    data = np.vstack((df_trn, df_val))
+
+    mu = data.mean(axis=0) # Calculates the mean of 'data' along the column axis. This mean will be used for data standardization.
+    sig = data.std(axis=0) # Calculates the standard deviation of 'data' along the column axis. This standard deviation will be used for data standardization.
+
+    all_df_columns = list(df)  # get the list of all the variable names in the dataset
+    dict_cat_dims = {}  # Initialize an empty dictionary 'dict_cat_dims' to store the maximum value of each categorical column + 1, which essentially reflects the number of unique categories.
+
+    # Prepare to dequantize
+    if cat_var:
+        # loop to change each column to category type to get the dimension/position of the categorical variable in the dataframe and respective unique categories.
+        dict_unique_cats = {}  # Initialize an empty dictionary 'dict_unique_cats' to store unique categories for each categorical column.
+
+        # The enumerate function is used when you want to iterate over an iterable and also want to have an index attached to each element.
+        for i, col in enumerate(all_df_columns):  # Loop over each column in the DataFrame. 'i' is the index and 'col' is the column name.
+            if col in cat_var:  # Check if the column 'col' is in the list of categorical column names 'cat_col_names'.
+                df[col] = df[col].astype('category', copy=False)  # If so, convert that column to 'category' type. This is often used to save memory or to perform some pandas operations faster.
+                dict_unique_cats[col] = list(df[col].unique())  # Add the unique categories of the column 'col' to the dictionary 'dict_unique_cats'.
+                print(f'\n{i}. {col}: {len(dict_unique_cats[col])} - {dict_unique_cats[col]}')  # Print the index, column name, number of unique categories and the unique categories themselves.
+                # dict_cat_dims[i] = len(dict_unique_cats[col])
+                dict_cat_dims[i] = max(dict_unique_cats[col]) + 1  # Instead, it sets the value in 'dict_cat_dims' for the key 'i' to one more than the maximum category of column 'col'. This assumes that the categories are numerical and can be ordered.
+
+    # Read the DAG CSV file.
+    df_cDAG = pd.read_csv(path + dag_name + '.csv', index_col=0)
+
+    # A dictionary 'pickle_objects' is created to hold the necessary preprocessed variables.
+    # These will later be saved into a pickle file for easy reloading in future sessions.
+    pickle_objects = {}
+
+    # Adding various data and information to the dictionary.
+    pickle_objects['df'] = df  # The entire DataFrame.
+    pickle_objects['trn'] = df_trn  # The training data.
+    pickle_objects['val'] = df_val  # The validation data.
+    pickle_objects['mu'] = mu  # The column-wise mean of the data.
+    pickle_objects['sig'] = sig  # The column-wise standard deviation of the data.
+    pickle_objects['df_all_columns'] = all_df_columns  # All column names of the DataFrame.
+    pickle_objects['df_cat_columns'] = cat_var  # The categorical column names.
+    pickle_objects['cat_dims'] = dict_cat_dims  # The dimensions of the categorical columns.
+    pickle_objects['seed'] = seed  # The random seed.
+    pickle_objects['dataset_filepath'] = path + dataset_name  # The file path of the dataset.
+    pickle_objects['A'] = torch.from_numpy(df_cDAG.to_numpy().transpose()).float()  # The adjacency matrix of the causal graph, converted to a PyTorch tensor.
+
+    print(pickle_objects['A'].shape)  # Printing the shape of the tensor 'A'.
+
+    # The context manager 'with open' is used to open a file in write-binary mode ('wb').
+    # The pickle.dump function is then used to write the 'pickle_objects' dictionary to this file.
+    with open(path + dataset_name + '.pkl', "wb") as f:
+        pickle.dump(pickle_objects, f)
+
