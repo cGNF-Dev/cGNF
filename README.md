@@ -96,7 +96,7 @@ This guide walks you through setting up the environment and utilizing `cGNF` mod
    Install the baseline modules for `cGNF` from the specified GitHub repository:
 
    ```bash
-   pip install git+https://github.com/JesseZhou-1/GNF-Modules.git
+   pip install git+https://github.com/JesseZhou-1/cGNF.git
    ```
 
 2. **Install PyTorch and Related Libraries**
@@ -247,7 +247,7 @@ Refer to the provided code snippets for details on function parameters and usage
 1. **Data Preprocessing (defined in `processing.py`)**:
 
     ```python
-    from processing import process
+    from cGNF import process
     process(
         path='/path_to_data_directory/',  # File path where the dataset and DAG are located
         dataset_name='your_dataset_name',  # Name of the dataset
@@ -270,7 +270,7 @@ Refer to the provided code snippets for details on function parameters and usage
 2. **Training (defined in `training.py`)**:
    
     ```python
-    from training import train
+    from cGNF import train
     train(
         path='/path_to_data_directory/',  # File path where the PKL file are located
         dataset_name='your_dataset_name',  # Name of the dataset
@@ -297,7 +297,7 @@ Refer to the provided code snippets for details on function parameters and usage
 3. **Counterfactual Inference (defined in `simulation.py`)**:
 
     ```python
-    from simulation import sim
+    from cGNF import sim
     sim(
         path='/path_to_data_directory/',  # File path where the PKL file are located
         dataset_name='your_dataset_name',  # Name of the dataset
