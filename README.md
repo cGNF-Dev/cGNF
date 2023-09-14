@@ -23,7 +23,7 @@ The method assumes a causal structure for the data in the form of a Directed Acy
 For a more comprehensive understanding of the deep learning aspects of c-GNF, please refer to the original works on GNF linked below:
 
 - [GNF](https://github.com/AWehenkel/Graphical-Normalizing-Flows) for graphical normalizing flows
-- [UMNN](https://github.com/AWehenkel/UMNN) for unconstrained monotonic neurtal networks
+- [UMNN](https://github.com/AWehenkel/UMNN) for unconstrained monotonic neural networks
 
 ---
 
