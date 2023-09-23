@@ -12,9 +12,6 @@ import torch.backends.cudnn as cudnn
 from timeit import default_timer as timer
 import pickle
 
-# Need to first install the modules from GitHub
-# run command-line 'pip install git+https://github.com/JesseZhou-1/GNF-Modules.git' in Terminal
-
 # install the modules
 from cGNF.GNF_Modules.Normalizers import *
 from cGNF.GNF_Modules.Conditionners import *

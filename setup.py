@@ -18,6 +18,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url='https://github.com/Jessezhou-1/cGNF',
+    license='MIT',
     classifiers=[
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.9',
