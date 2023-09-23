@@ -2,13 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='cGNF',
-    version='0.1',  # start with a small number and increment it with every change
+    version='0.3',  # start with a small number and increment it with every change
     packages=find_packages(),
     install_requires=[
         'torch',
         'numpy',
         'pandas',
         'networkx',
+        'scikit-learn',
         'causalgraphicalmodels',
         'UMNN',
     ],
