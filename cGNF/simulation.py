@@ -119,7 +119,14 @@ def sim(path="", dataset_name="", path_save ="", n_mce_samples = 100000, treatme
         if mediator:
 
             n_mediators = len(mediator)
-            loc_mediator = [variable_list.index(m) for m in mediator]
+
+            # Check if mediator values are specified
+            specified_values = [m.split('=') if '=' in m else None for m in mediator]
+            mediator_names = [s[0] if s else m for s, m in zip(specified_values, mediator)]
+            mediator_values = [float(s[1]) if s else None for s in specified_values]
+
+            # Get the location of mediators in the variable list
+            loc_mediator = [variable_list.index(m) for m in mediator_names]
 
             # Retrieve the control and treatment values for each mediator
             x_control = cur_x_do_inv[0, :, loc_treatment]
@@ -137,9 +144,13 @@ def sim(path="", dataset_name="", path_save ="", n_mce_samples = 100000, treatme
                     do_values = [x_treatment if val == '1' else x_control]
 
                     for j in range(i + 1):  # Include all mediators up to i
-                        m_control = cur_x_do_inv[0, :, loc_mediator[j]]
-                        m_treatment = cur_x_do_inv[1, :, loc_mediator[j]]
-                        do_values.append(m_treatment if val == '0' else m_control)
+                        if mediator_values[j] is not None:  # If a specific value is provided
+                            m_value = torch.tensor(mediator_values[j]).expand(n_mce_samples).to(device)
+                            do_values.append(m_value)
+                        else:
+                            m_control = cur_x_do_inv[0, :, loc_mediator[j]]
+                            m_treatment = cur_x_do_inv[1, :, loc_mediator[j]]
+                            do_values.append(m_treatment if val == '0' else m_control)
 
                     # 'do' operation and inversion
                     do_val = torch.stack(do_values, -1)
@@ -184,24 +195,20 @@ def sim(path="", dataset_name="", path_save ="", n_mce_samples = 100000, treatme
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_condition = inv_output[moderator] == q
+                                moderator_series = inv_output[moderator] == q
 
                                 # Subset the DataFrame for the current mediator and treatment level using the moderator condition
                                 subset_df_mediator = inv_output_pse_dict[f"m{i + 1}_{val}"][
-                                    moderator_condition.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index,
+                                    moderator_series.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index,
                                                                 fill_value=False)]
 
                                 # Perform calculations for mean counterfactual outcome under different moderator values
                                 m_moderated_mean = subset_df_mediator[outcome].mean()
 
-                                # Generate the mediator conditions string
-                                mediator_conditions = ", ".join(
-                                    [f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)]
-                                )
+                                for j in range(i + 1):  # Include all mediators up to i
+                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
 
-                                print(
-                                    f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})] = {m_moderated_mean}"
-                                )
+                                print(f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})] = {m_moderated_mean}")
 
                 else:
                     for mod_val in unique_moderator_values:
@@ -221,23 +228,19 @@ def sim(path="", dataset_name="", path_save ="", n_mce_samples = 100000, treatme
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_condition = inv_output[moderator] == mod_val
+                                moderator_series = inv_output[moderator] == mod_val
 
                                 # Subset the DataFrame for the current mediator and treatment level using the moderator condition
                                 subset_df_mediator = inv_output_pse_dict[f"m{i + 1}_{val}"][
-                                    moderator_condition.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index, fill_value=False)]
+                                    moderator_series.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index, fill_value=False)]
 
                                 # Perform calculations for mean counterfactual outcome under different moderator values
                                 m_moderated_mean = subset_df_mediator[outcome].mean()
 
-                                # Generate the mediator conditions string
-                                mediator_conditions = ", ".join(
-                                    [f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)]
-                                )
+                                for j in range(i + 1):  # Include all mediators up to i
+                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
 
-                                print(
-                                    f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})] = {m_moderated_mean}"
-                                )
+                                print(f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})] = {m_moderated_mean}")
 
             else:
 
@@ -260,11 +263,13 @@ def sim(path="", dataset_name="", path_save ="", n_mce_samples = 100000, treatme
                         cur_x_pse_mean = cur_x_pse_dict[f"m{i + 1}_{val}"].mean(1).cpu().numpy().squeeze()
                         E_Y[f"m{i + 1}_{val}"] = cur_x_pse_mean[loc_outcome]
 
-                        mediator_conditions = ", ".join(
-                            [f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
+                        for j in range(i + 1):  # Include all mediators up to i
+                            mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
+
 
                         print(
                             f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions})] = {E_Y[f'm{i + 1}_{val}']}")
+
 
         else:
             # If the moderator variable is specified
