@@ -231,7 +231,7 @@ class DAGConditioner(Conditioner):
         with torch.no_grad():
             lag_const = self.get_power_trace()
             while self.dag_const > 0. and lag_const < self.tol and self.exponent < self.in_size:
-                print("Update exponent", self.exponent)
+                # print("Update exponent", self.exponent)
                 self.exponent += 50
                 lag_const = self.get_power_trace()
 
@@ -242,14 +242,14 @@ class DAGConditioner(Conditioner):
                     self.c *= self.eta
                 self.prev_trace = lag_const
             elif self.dag_const > 0.:
-                print("DAGness is very low: %f -> Post processing" % torch.log(lag_const), flush=True)
+                # print("DAGness is very low: %f -> Post processing" % torch.log(lag_const), flush=True)
                 A_before = self.A.clone()
                 self.post_process()
-                self.alpha = torch.tensor(self.getAlpha())
+                self.alpha = self.getAlpha()
                 lag_const = self.get_power_trace()
-                print("DAGness is now: %f" % torch.log(lag_const), flush=True)
+                # print("DAGness is now: %f" % torch.log(lag_const), flush=True)
                 if lag_const > 0.:
-                    print("Error in post-processing.", flush=True)
+                    # print("Error in post-processing.", flush=True)
                     self.stoch_gate = True
                     self.noise_gate = False
                     self.s_thresh = True
@@ -266,15 +266,14 @@ class DAGConditioner(Conditioner):
                 else:
                     self.dag_const = torch.tensor(0.)
                     self.l1_weight = torch.tensor(0.)
-                    print("Post processing successful.")
-                    print("Number of edges is %d VS number max is %d" %
-                          (int(self.A.sum().item()), ((self.d - 1)*self.d)/2), flush=True)
+                    # print("Post processing successful.")
+                    # print("Number of edges is %d VS number max is %d" % (int(self.A.sum().item()), ((self.d - 1)*self.d)/2), flush=True)
 
             else:
                 G = nx.DiGraph(self.A.detach().cpu().numpy() ** 2, create_using=nx.DiGraph)
                 try:
                     nx.find_cycle(G)
-                    print("Bad news there is still cycles in this graph.", flush=True)
+                    # print("Bad news there is still cycles in this graph.", flush=True)
                     self.A.requires_grad = True
                     self.A.grad = self.A.clone()
                     self.stoch_gate = True
@@ -286,11 +285,11 @@ class DAGConditioner(Conditioner):
                     self.dag_const = torch.tensor(1.)
                     print(self.in_size, self.prev_trace)
                 except nx.NetworkXNoCycle:
-                    print("Good news there is no cycle in this graph.", flush=True)
-                    print("Depth of the graph is: %d" % self.depth())
+                    # print("Good news there is no cycle in this graph.", flush=True)
+                    # print("Depth of the graph is: %d" % self.depth())
                     self.is_invertible = True#torch.tensor(True)
 
-                print("DAGness is still very low: %f" % torch.log(self.get_power_trace()), flush=True)
+                # print("DAGness is still very low: %f" % torch.log(self.get_power_trace()), flush=True)
         return lag_const
 
     def depth(self):
@@ -319,9 +318,9 @@ class DAGConditioner(Conditioner):
 #                 if self.in_size < 30:
 #                     print(self.soft_thresholded_A(), flush=True)
                 if self.loss().abs() < loss_avg.abs()/2 or self.no_update > 10:
-                    print("Update param", flush=True)
+                    # print("Update param", flush=True)
                     self.update_dual_param()
                     self.no_update = 0
                 else:
-                    print("No Update param", flush=True)
+                    # print("No Update param", flush=True)
                     self.no_update += 1

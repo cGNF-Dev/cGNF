@@ -23,9 +23,9 @@ cond_types = {"DAG": DAGConditioner, "Coupling": CouplingConditioner,
 norm_types = {"affine": AffineNormalizer, "monotonic": MonotonicNormalizer}  # types of transformers/normalizers
 
 def train(path="", dataset_name="" , path_save="",
-          trn_batch_size=1024, val_batch_size=1024, learning_rate=1e-3, seed=None, nb_epoch=10000,
-          emb_net=[100, 90, 80, 60],
-          int_net=[60,50,40,30], nb_estop=50, val_freq =1):
+          trn_batch_size=128, val_batch_size=1024, learning_rate=1e-4, seed=None, nb_epoch=10000,
+          emb_net=[100, 90, 80, 70, 60],
+          int_net=[60, 50, 40, 30, 20], nb_estop=50, val_freq =1):
 
     # set cuda device for pytorch if available
     device = "cpu" if not (torch.cuda.is_available()) else "cuda:0"
