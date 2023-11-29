@@ -18,7 +18,7 @@ def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_
 
         # Load and sample data
         data = pd.read_csv(os.path.join(base_path, dataset_name + f'.csv'))
-        dag =  pd.read_csv(os.path.join(base_path, dag_name + f'.csv'), index_col=0)
+        dag =  pd.read_csv(os.path.join(base_path, dag_name + f'.csv'))
         df = data.sample(n=len(data), replace=True)
         folder = f'{folder_name}_{i}'
         path = os.path.join(base_path, folder, '')
