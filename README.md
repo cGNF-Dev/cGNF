@@ -6,21 +6,23 @@ The causal-Graphical Normalizing Flows (c-GNF) project primarily focuses on caus
 
 The method assumes a causal structure for the data in the form of a Directed Acyclic Graph (DAG). It then learns a normalizing flow for the joint distribution of the data based on this causal structure. This flow is inverted to perform hypothetical interventions and then simulate or abduct counterfactual outcomes.
 
+---
+
 ### Work Flow
 
-1. **Assume a causal structure**: Specify a DAG for the dataset.
+1. **Assume a causal structure**: specify a DAG for the dataset.
    
-2. **Learn a normalizing flow**: Fit a deep neural net to model the joint distribution of the data, given the assumed causal structure.
+2. **Learn a normalizing flow**: fit a deep neural net to model the joint distribution of the data, given the assumed causal structure.
    
-3. **Invert the normalizing flow**: For counterfactual inference.
+3. **Invert the normalizing flow**: for counterfactual inference.
    
-4. **Intervention**: Set a parent variable \( C \) to a new value \( c' \) to study its effect on a child variable \( Y \).
+4. **Intervene on an exposure**: set a parent variable to a new value to study its effect on a child variable.
    
-5. **Counterfactual Outcomes**: Sample from a standard normal distribution and pipe these samples through the inverted flow to simulate counterfactuals \( Y(c') \).
+5. **Simulate potential outcomes**: sample from a standard normal distribution and then pipe these samples through the inverted flow to simulate counterfactuals.
 
-### Deep Learning Components
+### Deep Learning Models
 
-For a more comprehensive understanding of the deep learning aspects of c-GNF, please refer to the original works on GNF linked below:
+For a more comprehensive understanding of the deep learning models used by cGNF, please refer to the original works on GNF and UMNN linked below:
 
 - [GNF](https://github.com/AWehenkel/Graphical-Normalizing-Flows) for graphical normalizing flows
 - [UMNN](https://github.com/AWehenkel/UMNN) for unconstrained monotonic neural networks
