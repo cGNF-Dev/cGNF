@@ -1,6 +1,4 @@
 
-# cGNF training function wrapper with some important arguments
-
 import os
 import math
 import random
@@ -12,6 +10,9 @@ import torch.backends.cudnn as cudnn
 from timeit import default_timer as timer
 import pickle
 
+# Need to first install the modules from GitHub
+# run command-line 'pip install git+https://github.com/JesseZhou-1/GNF-Modules.git' in Terminal
+
 # install the modules
 from cGNF.GNF_Modules.Normalizers import *
 from cGNF.GNF_Modules.Conditionners import *
@@ -22,7 +23,7 @@ cond_types = {"DAG": DAGConditioner, "Coupling": CouplingConditioner,
               "Autoregressive": AutoregressiveConditioner}  # types of conditioners
 norm_types = {"affine": AffineNormalizer, "monotonic": MonotonicNormalizer}  # types of transformers/normalizers
 
-def train(path="", dataset_name="" ,model_name= "models",
+def train(path="", dataset_name="" , model_name="models",
           trn_batch_size=128, val_batch_size=4096, learning_rate=1e-4, seed=None, nb_epoch=50000,
           emb_net=[100, 90, 80, 70, 60],
           int_net=[60,50,40,30, 20], nb_estop=50, val_freq =1):
@@ -43,8 +44,6 @@ def train(path="", dataset_name="" ,model_name= "models",
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True # ensures that the CUDA backend for PyTorch (CuDNN) uses deterministic algorithms.
         torch.backends.cudnn.benchmark = True # enables the CuDNN autotuner, which selects the best algorithm for CuDNN operations given the current hardware setup.
-    else:
-        print("GPU device not available!")
 
     path_save = os.path.join(path, model_name)
 
@@ -71,14 +70,10 @@ def train(path="", dataset_name="" ,model_name= "models",
     # Convert numpy data to torch tensors and move to device
     data_mu = torch.from_numpy(mu).float().to(device)
     data_sigma = torch.from_numpy(sig).float().to(device)
-    print(f"data_mu = \n{data_mu.cpu().numpy()}, \ndata_sigma = \n{data_sigma.cpu().numpy()}")
 
     #load data saved in csv file
     df_filename = dataset_filepath + '.csv'
     df = pd.read_csv(df_filename)
-
-    print(list(df.columns))
-    print("Data loaded.")
 
     # Create PyTorch TensorDataset from numpy data
     d_trn = TensorDataset(torch.from_numpy(trn).float())
@@ -99,7 +94,6 @@ def train(path="", dataset_name="" ,model_name= "models",
     solver = "CC" # Clenshaw-Curtis quadrature optimization algorithm (integral solver) in the normalizer.
 
     # Create pytorch dataloaders for the respective datasets to process the data in batches
-    print(f"Batch size = trn:{trn_batch_size:7d},  val:{val_batch_size:7d}")
     l_trn = DataLoader(d_trn,
                        batch_size=trn_batch_size,
                        num_workers=int(workers),
@@ -113,12 +107,7 @@ def train(path="", dataset_name="" ,model_name= "models",
                        pin_memory=pin_memory,
                        drop_last=False)  # create validation dataloader
 
-    print(f"Number of samples = trn:{len(d_trn):7d},  val:{len(d_val):7d}")
-    print(f"Number of batches = trn:{len(l_trn):7d},  val:{len(l_val):7d}")
     epoch_iters = len(l_trn) # Equals to 'Number of samples' (N) // 'Batch size' (B)
-
-    print(f"Dataset_mean = {mu}")
-    print(f"Dataset_sigma = {sig}")
 
     # Import modules from GNF for the monotonic normalizer/transformer and graphical conditioner
     dim = torch.from_numpy(trn).shape[1] # Retrieve the number of variables (number of columns) in your input data trn
@@ -132,7 +121,6 @@ def train(path="", dataset_name="" ,model_name= "models",
         conditioner_args['A_prior'] = A.to(device)
         conditioner_args['Z_Sigma'] = Z_Sigma.to(device)
 
-    #print(f'{conditioner_args}')
 
     normalizer_type = norm_types[norm_type]
     if normalizer_type is MonotonicNormalizer:
@@ -145,15 +133,12 @@ def train(path="", dataset_name="" ,model_name= "models",
                            }
     else:
         normalizer_args = {}
-    #print(f'{normalizer_args}')
 
     if file_number is None:
         file_number = 0
 
     # Creating the cGNF model
     model = buildFCNormalizingFlow_UC(nb_flow, conditioner_type, conditioner_args, normalizer_type, normalizer_args)
-    print(f'{model.getConditioners()[0]}')
-    print(f'{model.getNormalizers()[0]}')
     _best_valid_loss = np.inf  # initializing the variable '_best_valid_loss' with the value of positive infinity (np.inf).
 
     ## Initializing an instance of the AdamW optimizer in Pytorch
@@ -211,8 +196,7 @@ def train(path="", dataset_name="" ,model_name= "models",
 
                 # If the loss is NaN or infinity, save the model and exit
                 if math.isnan(loss.item()) or math.isinf(loss.abs().item()):
-                    torch.save(model, path_save + 'NANmodel.pt')
-                    print("Error NAN in loss")
+                    torch.save(model, path_save,'NANmodel.pt')
                     exit()
 
                 # Add the loss to the total loss
@@ -225,9 +209,7 @@ def train(path="", dataset_name="" ,model_name= "models",
 
                 # Calculate validation loss at specified intervals of the training
                 if n_iters % n_iters_val == 0: #the model's validation loss is evaluated every 'n_iters_val' steps of training (the number of iteration is the integer multiple of 'n_iters_val').
-                    print("------- iteration: {:d} --------". format(n_iters))
                     n_estop += n_iters_val / epoch_iters #n_estop is to track how many epochs have passed without improvement on the validation set. for n_estop to reach 50, the current model would have to go through  '50 % n_iters_val / epoch_iters' epochs without improving its validation loss.
-                    print("Current n_estop:", n_estop)
                     # Valid loop
                     model.eval() # Set the model to evaluation mode
                     ll_val = 0. # Initialize validation loss
@@ -250,16 +232,11 @@ def train(path="", dataset_name="" ,model_name= "models",
                         val_log_likelihoods.append(ll_val)
 
                         end = timer()# Measure time at the end of the epoch
-                        print(
-                            "epoch: {:d} - batch: {:d} - Current best validation loss: {:4f} - Validation loss: {:4f} - Elapsed time per epoch {:4f} (seconds)".
-                            format(epoch, it+1, _best_valid_loss, -ll_val, end - start))
 
                         if -ll_val < _best_valid_loss: # If the current model performs better than all previous model, n_estop will be reset to 0. Else, n_estop will not reset and will instead increment.
                             n_estop = 0 # It's incremented each time validation happens and reset to 0 each time a new best validation loss is found. If the value of n_estop exceeds the early stopping threshold nb_estop, the training is stopped early.
                             _best_valid_loss = -ll_val # replace the best validation loss with the current value
-                            print("------- New best validation loss --------")
-                            print("New best validation loss: {:4f} ".format(-ll_val))
-                            print("Saving best model...")
+
                             torch.save(model, os.path.join(path_save,'_best_model.pt'))  # save the current best validation model.
                             torch.save(opt.state_dict(), os.path.join(path_save,'_best_optimizer.pt'))  # save the current best validation optimizer state.
 

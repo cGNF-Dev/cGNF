@@ -3,7 +3,7 @@ import pickle
 import pandas as pd
 import os
 
-def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, treatment= '', cat_list=[0, 1], moderator =None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name = 'potential_outcome'):
+def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, treatment= '', cat_list=[0, 1], moderator =None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name = 'inv'):
 
     results_df = pd.DataFrame(columns=["Potential Outcome", "Value"])
 
@@ -184,7 +184,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                     quartiles = inv_output[moderator].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
-                        print(f"---- {moderator} (Quartile {idx}) ----")
 
                         # Main DataFrame subset where the moderator equals the current unique value
                         subset_df = inv_output[inv_output[moderator] == q]
@@ -194,8 +193,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                             conditional_mean = sub_subset_df[outcome].mean()
                             new_row = pd.DataFrame({"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={q})]", "Value": conditional_mean}, index=[0])
                             results_df = pd.concat([results_df, new_row], ignore_index=True)
-                            print(
-                                f"E[{outcome}({treatment}={t_val} | {moderator}={q})] = {conditional_mean}")
 
                         # Loop through each mediator to print the expected outcomes for different combinations
                         for i in range(len(mediator)):
@@ -218,11 +215,9 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                                     {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})]",
                                      "Value": m_moderated_mean}, index=[0])
                                 results_df = pd.concat([results_df, new_row], ignore_index=True)
-                                print(f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})] = {m_moderated_mean}")
 
                 else:
                     for mod_val in unique_moderator_values:
-                        print(f'---- {moderator} = {mod_val} ----')
 
                         # Main DataFrame subset where the moderator equals the current unique value
                         subset_df = inv_output[inv_output[moderator] == mod_val]
@@ -234,8 +229,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                                 {"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={mod_val})]",
                                  "Value": conditional_mean}, index=[0])
                             results_df = pd.concat([results_df, new_row], ignore_index=True)
-                            print(
-                                f"E[{outcome}({treatment}={t_val} | {moderator}={mod_val})] = {conditional_mean}")
 
                         # Loop through each mediator to print the expected outcomes for different combinations
                         for i in range(len(mediator)):
@@ -257,7 +250,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                                     {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})]",
                                      "Value": m_moderated_mean}, index=[0])
                                 results_df = pd.concat([results_df, new_row], ignore_index=True)
-                                print(f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})] = {m_moderated_mean}")
 
             else:
 
@@ -275,12 +267,10 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                     {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[0]})]",
                      "Value": E_Y_0_0[loc_outcome]}, index=[0])
                 results_df = pd.concat([results_df, new_row], ignore_index=True)
-                print(f"E[{outcome}({treatment}={cat_list[0]})] = {E_Y_0_0[loc_outcome]}")
                 new_row = pd.DataFrame(
                     {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[1]})]",
                      "Value": E_Y_1_1[loc_outcome]}, index=[0])
                 results_df = pd.concat([results_df, new_row], ignore_index=True)
-                print(f"E[{outcome}({treatment}={cat_list[1]})] = {E_Y_1_1[loc_outcome]}")
 
                 # Loop through each mediator to print the expected outcomes for different combinations
                 for i in range(len(mediator)):
@@ -294,9 +284,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                             {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions})]",
                              "Value": E_Y[f'm{i + 1}_{val}']}, index=[0])
                         results_df = pd.concat([results_df, new_row], ignore_index=True)
-                        print(
-                            f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions})] = {E_Y[f'm{i + 1}_{val}']}")
-
 
         else:
             # If the moderator variable is specified
@@ -310,7 +297,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                     quartiles = inv_output[moderator].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
-                        print(f"---- {moderator} (Quartile {idx}) ----")
                         subset_df = inv_output[inv_output[moderator] == q]
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
@@ -319,12 +305,10 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                                 {"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={q})]",
                                  "Value": conditional_mean}, index=[0])
                             results_df = pd.concat([results_df, new_row], ignore_index=True)
-                            print(f"E[{outcome}({treatment}={t_val} | {moderator}={q})] = {conditional_mean}")
 
                 else:
                     # For each unique value of the moderator variable
                     for val in unique_moderator_values:
-                        print(f'---- {moderator} = {val} ----')
                         # Subset the DataFrame where the moderator equals the current unique value
                         subset_df = inv_output[inv_output[moderator] == val]
                         # For each unique value of the treatment variable
@@ -337,8 +321,6 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                                 {"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={val})]",
                                  "Value": conditional_mean}, index=[0])
                             results_df = pd.concat([results_df, new_row], ignore_index=True)
-                            # Print the results DataFrame
-                            print(f"E[{outcome}({treatment}={t_val} | {moderator}={val})] = {conditional_mean}")
 
             else:
                 for t_val in cat_list:
@@ -350,9 +332,7 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples = 10000, tr
                         {"Potential Outcome": f"E[{outcome}({treatment}={t_val})]",
                          "Value": counter_mean}, index=[0])
                     results_df = pd.concat([results_df, new_row], ignore_index=True)
-                    # Print the results DataFrame
-                    print(f"E[{outcome}({treatment}={t_val})] = {counter_mean}")
+
 
     results_df.to_csv(f"{path}{inv_datafile_name}_results.csv", index=False)
     return results_df
-

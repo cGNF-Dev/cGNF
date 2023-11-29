@@ -28,9 +28,6 @@ def process(path="", dataset_name="", dag_name='DAG', dag_edges=None, sens_corr=
         df_cDAG = nx.to_pandas_adjacency(DAG.dag, dtype=int)
         df_cDAG.to_csv(path + f'{dag_name}.csv')
 
-        print("------- Adjacency Matrix -------")
-        print(df_cDAG)  # Prints the adjacency matrix.
-
 
     num_vars = len(df.columns)
     corr_matrix = np.eye(num_vars)
@@ -52,9 +49,7 @@ def process(path="", dataset_name="", dag_name='DAG', dag_edges=None, sens_corr=
 
         # Save the updated correlation matrix
         pd.DataFrame(corr_matrix, index=df.columns, columns=df.columns).to_csv(
-            path + 'sens_corr_matrix.csv')
-
-
+            path + 'sens_corr_matrix_name.csv')
 
     # Imports the function 'train_test_split' from sklearn's model selection module.
     from sklearn.model_selection import train_test_split
@@ -83,7 +78,6 @@ def process(path="", dataset_name="", dag_name='DAG', dag_edges=None, sens_corr=
             if col in cat_var:  # Check if the column 'col' is in the list of categorical column names 'cat_col_names'.
                 df[col] = df[col].astype('category', copy=False)  # If so, convert that column to 'category' type. This is often used to save memory or to perform some pandas operations faster.
                 dict_unique_cats[col] = list(df[col].unique())  # Add the unique categories of the column 'col' to the dictionary 'dict_unique_cats'.
-                print(f'\n{i}. {col}: {len(dict_unique_cats[col])} - {dict_unique_cats[col]}')  # Print the index, column name, number of unique categories and the unique categories themselves.
                 # dict_cat_dims[i] = len(dict_unique_cats[col])
                 dict_cat_dims[i] = max(dict_unique_cats[col]) + 1  # Instead, it sets the value in 'dict_cat_dims' for the key 'i' to one more than the maximum category of column 'col'. This assumes that the categories are numerical and can be ordered.
 
@@ -106,9 +100,8 @@ def process(path="", dataset_name="", dag_name='DAG', dag_edges=None, sens_corr=
     pickle_objects['A'] = torch.from_numpy(df_cDAG.to_numpy().transpose()).float()  # The adjacency matrix of the causal graph, converted to a PyTorch tensor.
     pickle_objects['Z_Sigma'] = torch.from_numpy(corr_matrix).float()
 
-    print(pickle_objects['A'].shape)  # Printing the shape of the tensor 'A'.
-
     # The context manager 'with open' is used to open a file in write-binary mode ('wb').
     # The pickle.dump function is then used to write the 'pickle_objects' dictionary to this file.
     with open(path + dataset_name + '.pkl', "wb") as f:
         pickle.dump(pickle_objects, f)
+

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cGNF',
-    version='0.4',  # start with a small number and increment it with every change
+    version='0.5',  # start with a small number and increment it with every change
     packages=find_packages(),
     install_requires=[
         'torch',
@@ -12,6 +12,7 @@ setup(
         'scikit-learn',
         'causalgraphicalmodels',
         'UMNN',
+        'joblib',
     ],
     author='Jesse Zhou',
     author_email='zhou.jesse2@gmail.com',
