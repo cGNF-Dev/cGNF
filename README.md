@@ -4,7 +4,7 @@
 
 The causal-Graphical Normalizing Flows (c-GNF) project primarily focuses on causal questions addressed through the use of normalizing flows. This project incorporates deep learning components from Graphical Normalizing Flows (GNFs) and Unconstrained Monotonic Neural Networks (UMNNs). 
 
-The method assumes a causal structure for the data in the form of a Directed Acyclic Graph (DAG). It then learns a normalizing flow for the joint distribution of the data based on this causal structure. This flow is inverted to perform hypothetical interventions and then simulate or abduct counterfactual outcomes.
+The method assumes a causal structure for the data in the form of a Directed Acyclic Graph (DAG). It then learns a normalizing flow for the joint distribution of the data based on this causal structure. This flow is inverted to perform hypothetical interventions and then simulate potential outcomes.
 
 ---
 
