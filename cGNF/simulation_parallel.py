@@ -2,6 +2,10 @@ import torch
 import pickle
 import pandas as pd
 import os
+import warnings
+
+# Suppress only FutureWarnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, treatment= '', cat_list=[0, 1], moderator =None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name = 'inv'):
 
