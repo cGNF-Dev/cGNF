@@ -1,8 +1,8 @@
 import pandas as pd
 import os
-from processing_parallel import process
-from training_parallel import train
-from simulation_parallel import sim
+from cGNF.processing_parallel import process
+from cGNF.training_parallel import train
+from cGNF.simulation_parallel import sim
 from joblib import Parallel, delayed
 import time
 
