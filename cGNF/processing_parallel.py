@@ -8,25 +8,19 @@ import networkx as nx
 from causalgraphicalmodels import CausalGraphicalModel
 
 
-def process(path="", dataset_name="", dag_name='DAG', dag_edges=None, sens_corr= None, test_size=0.2, cat_var=None, seed=None):
+def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size=0.2, cat_var=None, seed=None):
 
     # Read the data file.
     df = pd.read_csv(path + dataset_name + '.csv')
 
-    try:
-        # Try to read the DAG CSV file.
-        df_cDAG = pd.read_csv(path + dag_name + '.csv', index_col=0)
-    except FileNotFoundError:
-        # If DAG file is not found, create DAG from provided edges
-        if dag_edges is None:
-            raise ValueError("dag_edges must be provided if dag_name is not specified.")
+    ordered_columns = df.columns.tolist()  # Get the column names from the DataFrame
 
-        DAG = CausalGraphicalModel(
-            nodes=list(df.columns),
-            edges=dag_edges)
+    # Try to read the DAG CSV file.
+    df_cDAG = pd.read_csv(path + dag_name + '.csv', index_col=0)
 
-        df_cDAG = nx.to_pandas_adjacency(DAG.dag, dtype=int)
-        df_cDAG.to_csv(path + f'{dag_name}.csv')
+    df_cDAG = df_cDAG.reindex(index=ordered_columns, columns=ordered_columns)  # Reorder both rows and columns
+
+    print(df_cDAG)
 
 
     num_vars = len(df.columns)
