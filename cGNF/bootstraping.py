@@ -6,13 +6,14 @@ from cGNF.simulation_parallel import sim
 from joblib import Parallel, delayed
 import time
 
-def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_name=None, dataset_name=None, process_args=None, train_args=None, skip_train=False, sim_args_list=None):
+def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_name=None, dataset_name=None, dag_name=None,process_args=None, train_args=None, skip_train=False, sim_args_list=None):
     def run_simulation(i, process_args, train_args, sim_args_list):
         print(f"Running simulation {i} on Process ID: {os.getpid()}")
         start_time = time.time()
 
         # Load and sample data
         data = pd.read_csv(os.path.join(base_path, dataset_name + f'.csv'))
+        dag =  pd.read_csv(os.path.join(base_path, dag_name + f'.csv'), index_col=0)
         df = data.sample(n=len(data), replace=True)
         folder = f'{folder_name}_{i}'
         path = os.path.join(base_path, folder, '')
@@ -20,11 +21,13 @@ def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_
             os.makedirs(path)
 
         df_filename = os.path.join(path, dataset_name + f'.csv')
+        dag_filename = os.path.join(path, dag_name + f'.csv')
         df.to_csv(df_filename, index=False)
+        dag.to_csv(dag_filename, index=False)
 
         # Run process and train functions, if arguments are provided
         if process_args:
-            updated_process_args = {**process_args, 'path': path, 'dataset_name': dataset_name}
+            updated_process_args = {**process_args, 'path': path, 'dataset_name': dataset_name, 'dag_name': dataset_name}
             process(**updated_process_args)
 
         if not skip_train:
