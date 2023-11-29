@@ -5,8 +5,13 @@ from cGNF.training_parallel import train
 from cGNF.simulation_parallel import sim
 from joblib import Parallel, delayed
 import time
+import warnings
 
-def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_name=None, dataset_name=None, dag_name=None, process_args=None, train_args=None, skip_train=False, sim_args_list=None):
+# Suppress only FutureWarnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
+def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_name=None, dataset_name=None, dag_name=None, process_args=None, train_args=None, skip_process=False, skip_train=False, sim_args_list=None):
     def run_simulation(i, process_args, train_args, sim_args_list):
         print(f"Running simulation {i} on Process ID: {os.getpid()}")
         start_time = time.time()
@@ -26,8 +31,8 @@ def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_
         dag.to_csv(dag_filename, index=False)
 
         # Run process and train functions, if arguments are provided
-        if process_args:
-            updated_process_args = {**process_args, 'path': path, 'dataset_name': dataset_name, 'dag_name': dataset_name}
+        if not skip_process:
+            updated_process_args = {**process_args, 'path': path, 'dataset_name': dataset_name, 'dag_name': dag_name}
             process(**updated_process_args)
 
         if not skip_train:
