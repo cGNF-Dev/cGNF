@@ -16,6 +16,7 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
 
     df_cDAG = df_cDAG.reindex(index=ordered_columns, columns=ordered_columns)  # Reorder both rows and columns
 
+    print("------- Adjacency Matrix -------")
     print(df_cDAG)
 
     num_vars = len(df.columns)
