@@ -117,9 +117,6 @@ def train(path="", dataset_name="" ,model_name= "models",
     print(f"Number of batches = trn:{len(l_trn):7d},  val:{len(l_val):7d}")
     epoch_iters = len(l_trn) # Equals to 'Number of samples' (N) // 'Batch size' (B)
 
-    print(f"Dataset_mean = {mu}")
-    print(f"Dataset_sigma = {sig}")
-
     # Import modules from GNF for the monotonic normalizer/transformer and graphical conditioner
     dim = torch.from_numpy(trn).shape[1] # Retrieve the number of variables (number of columns) in your input data trn
     conditioner_type = cond_types[cond_type]

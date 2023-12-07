@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
-import collections.abc
-collections.Iterable = collections.abc.Iterable
 import torch  # Importing the PyTorch library, which provides tools for deep learning.
 import pickle  # Importing the pickle module, which allows to serialize and deserialize Python object structures.
-import networkx as nx
-from causalgraphicalmodels import CausalGraphicalModel
 
 
 def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size=0.2, cat_var=None, seed=None):
@@ -19,9 +15,6 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
     df_cDAG = pd.read_csv(path + dag_name + '.csv', index_col=0)
 
     df_cDAG = df_cDAG.reindex(index=ordered_columns, columns=ordered_columns)  # Reorder both rows and columns
-
-    print(df_cDAG)
-
 
     num_vars = len(df.columns)
     corr_matrix = np.eye(num_vars)
