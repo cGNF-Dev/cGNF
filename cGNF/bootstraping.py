@@ -11,7 +11,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-def bootstrap(n_iterations=None, num_cores_reserve=None, base_path=None, folder_name=None, dataset_name=None, dag_name=None, process_args=None, train_args=None, skip_process=False, skip_train=False, sim_args_list=None):
+def bootstrap(n_iterations=None, num_cores_reserve='2', base_path=None, folder_name='bootstrap', dataset_name=None, dag_name=None, process_args=None, train_args=None, skip_process=False, skip_train=False, sim_args_list=None):
     def run_simulation(i, process_args, train_args, sim_args_list):
         print(f"Running simulation {i} on Process ID: {os.getpid()}")
         start_time = time.time()

@@ -14,6 +14,9 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
     # Try to read the DAG CSV file.
     df_cDAG = pd.read_csv(path + dag_name + '.csv', index_col=0)
 
+    # Rename the index to remove the "Unnamed: 0" label
+    df_cDAG.index.name = None
+
     df_cDAG = df_cDAG.reindex(index=ordered_columns, columns=ordered_columns)  # Reorder both rows and columns
 
     print("------- Adjacency Matrix -------")
