@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cGNF',
-    version='0.8.6',  # start with a small number and increment it with every change
+    version='0.8.7',  # start with a small number and increment it with every change
     packages=find_packages(),
     install_requires=[
         'torch',
@@ -14,8 +14,8 @@ setup(
         'UMNN',
         'joblib',
     ],
-    author='Jesse Zhou',
-    author_email='zhou.jesse2@gmail.com',
+    author='cGNF-Team',
+    author_email='cgnf.team@gmail.com',
     description='The causal-Graphical Normalizing Flows (c-GNF) project primarily focuses on causal questions addressed through the use of normalizing flows',
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
