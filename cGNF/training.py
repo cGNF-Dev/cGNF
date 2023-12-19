@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import TensorDataset, DataLoader
 import torch.cuda
-import torch.backends.cudnn as cudnn
 from timeit import default_timer as timer
 import pickle
 
@@ -43,8 +42,9 @@ def train(path="", dataset_name="" ,model_name= "models",
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True # ensures that the CUDA backend for PyTorch (CuDNN) uses deterministic algorithms.
         torch.backends.cudnn.benchmark = True # enables the CuDNN autotuner, which selects the best algorithm for CuDNN operations given the current hardware setup.
+        print("Using GPU")
     else:
-        print("GPU device not available!")
+        print("Using CPU")
 
     path_save = os.path.join(path, model_name)
 
@@ -71,7 +71,6 @@ def train(path="", dataset_name="" ,model_name= "models",
     # Convert numpy data to torch tensors and move to device
     data_mu = torch.from_numpy(mu).float().to(device)
     data_sigma = torch.from_numpy(sig).float().to(device)
-    print(f"data_mu = \n{data_mu.cpu().numpy()}, \ndata_sigma = \n{data_sigma.cpu().numpy()}")
 
     #load data saved in csv file
     df_filename = dataset_filepath + '.csv'
@@ -99,7 +98,6 @@ def train(path="", dataset_name="" ,model_name= "models",
     solver = "CC" # Clenshaw-Curtis quadrature optimization algorithm (integral solver) in the normalizer.
 
     # Create pytorch dataloaders for the respective datasets to process the data in batches
-    print(f"Batch size = trn:{trn_batch_size:7d},  val:{val_batch_size:7d}")
     l_trn = DataLoader(d_trn,
                        batch_size=trn_batch_size,
                        num_workers=int(workers),
@@ -129,8 +127,6 @@ def train(path="", dataset_name="" ,model_name= "models",
         conditioner_args['A_prior'] = A.to(device)
         conditioner_args['Z_Sigma'] = Z_Sigma.to(device)
 
-    #print(f'{conditioner_args}')
-
     normalizer_type = norm_types[norm_type]
     if normalizer_type is MonotonicNormalizer:
         normalizer_args = {"integrand_net": int_net, "cond_size": emb_net[-1], "nb_steps": nb_steps,
@@ -142,7 +138,6 @@ def train(path="", dataset_name="" ,model_name= "models",
                            }
     else:
         normalizer_args = {}
-    #print(f'{normalizer_args}')
 
     if file_number is None:
         file_number = 0

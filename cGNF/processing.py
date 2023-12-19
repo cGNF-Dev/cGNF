@@ -96,8 +96,6 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
     pickle_objects['A'] = torch.from_numpy(df_cDAG.to_numpy().transpose()).float()  # The adjacency matrix of the causal graph, converted to a PyTorch tensor.
     pickle_objects['Z_Sigma'] = torch.from_numpy(corr_matrix).float()
 
-    print(pickle_objects['A'].shape)  # Printing the shape of the tensor 'A'.
-
     # The context manager 'with open' is used to open a file in write-binary mode ('wb').
     # The pickle.dump function is then used to write the 'pickle_objects' dictionary to this file.
     with open(path + dataset_name + '.pkl', "wb") as f:
