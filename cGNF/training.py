@@ -144,8 +144,8 @@ def train(path="", dataset_name="" ,model_name= "models",
 
     # Creating the cGNF model
     model = buildFCNormalizingFlow_UC(nb_flow, conditioner_type, conditioner_args, normalizer_type, normalizer_args)
-    print(f'{model.getConditioners()[0]}')
-    print(f'{model.getNormalizers()[0]}')
+    # print(f'{model.getConditioners()[0]}')
+    # print(f'{model.getNormalizers()[0]}')
     _best_valid_loss = np.inf  # initializing the variable '_best_valid_loss' with the value of positive infinity (np.inf).
 
     ## Initializing an instance of the AdamW optimizer in Pytorch

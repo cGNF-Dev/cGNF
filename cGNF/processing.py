@@ -73,7 +73,7 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
             if col in cat_var:  # Check if the column 'col' is in the list of categorical column names 'cat_col_names'.
                 df[col] = df[col].astype('category', copy=False)  # If so, convert that column to 'category' type. This is often used to save memory or to perform some pandas operations faster.
                 dict_unique_cats[col] = list(df[col].unique())  # Add the unique categories of the column 'col' to the dictionary 'dict_unique_cats'.
-                print(f'\n{i}. {col}: {len(dict_unique_cats[col])} - {dict_unique_cats[col]}')  # Print the index, column name, number of unique categories and the unique categories themselves.
+                print(f'\n{col}: {len(dict_unique_cats[col])} categories - value: {dict_unique_cats[col]}')  # Print the index, column name, number of unique categories and the unique categories themselves.
                 # dict_cat_dims[i] = len(dict_unique_cats[col])
                 dict_cat_dims[i] = max(dict_unique_cats[col]) + 1  # Instead, it sets the value in 'dict_cat_dims' for the key 'i' to one more than the maximum category of column 'col'. This assumes that the categories are numerical and can be ordered.
 
