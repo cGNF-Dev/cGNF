@@ -326,8 +326,8 @@ Additionally, a **`bootstrap`** function is provided to facilitate parallel exec
        num_cores_reserve=2,  # Number of cores to reserve
        base_path='/path_to_data_directory/',  # Base directory where the dataset and DAG are located
        folder_name='bootstrap_2k',  # Folder name for this bootstrap session
-       dataset_name=dataset_name,  # Name of the dataset being used
-       dag_name=dataset_name + '_DAG',  # Name of the DAG file associated with the dataset
+       dataset_name='your_dataset_name',  # Name of the dataset being used
+       dag_name='you_adj_mat_name',  # Name of the DAG file associated with the dataset
        process_args=process_args,  # Arguments for the data preprocessing function
        train_args=train_args,  # Arguments for the model training function
        sim_args_list=[sim_args1, sim_args2]  # List of arguments for multiple estimation configurations
