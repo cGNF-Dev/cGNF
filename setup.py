@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cGNF',
-    version='0.8.9',  # start with a small number and increment it with every change
+    version='0.9.0',  # start with a small number and increment it with every change
     packages=find_packages(),
     install_requires=[
         'torch',
