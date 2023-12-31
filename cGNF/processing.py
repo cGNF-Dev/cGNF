@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import torch  # Importing the PyTorch library, which provides tools for deep learning.
 import pickle  # Importing the pickle module, which allows to serialize and deserialize Python object structures.
-
+import ast
 
 def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size=0.2, cat_var=None, seed=None):
 
@@ -31,7 +31,15 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
         col_to_index = {col: idx for idx, col in enumerate(df.columns)}
 
         # Update the corr_matrix with the specified strengths.
-        for (source, target), strength in sens_corr.items():
+        for key, strength in sens_corr.items():
+            try:
+                # Convert the string representation of the tuple to an actual tuple
+                source, target = ast.literal_eval(key)
+            except ValueError:
+                # Handle any errors in conversion
+                print(f"Invalid tuple format: {key}")
+                continue
+
             if source in col_to_index and target in col_to_index:
                 idx_source = col_to_index[source]
                 idx_target = col_to_index[target]
@@ -41,8 +49,7 @@ def process(path="", dataset_name="", dag_name='DAG', sens_corr= None, test_size
                 corr_matrix[idx_target][idx_source] = strength
 
         # Save the updated correlation matrix
-        pd.DataFrame(corr_matrix, index=df.columns, columns=df.columns).to_csv(
-            path + 'sens_corr_matrix.csv')
+        pd.DataFrame(corr_matrix, index=df.columns, columns=df.columns).to_csv(path + 'sens_corr_matrix.csv')
 
 
 
