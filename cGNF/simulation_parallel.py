@@ -8,6 +8,7 @@ import random
 
 def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed=None, treatment='', cat_list=[0, 1],
         moderator=None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name='potential_outcome'):
+
     results_df = pd.DataFrame(columns=["Potential Outcome", "Value"])
 
     # Identify whether the system has a GPU, if yes it sets the device to "cuda:0" else "cpu"
