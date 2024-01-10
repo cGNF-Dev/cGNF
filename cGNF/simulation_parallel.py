@@ -2,17 +2,16 @@ import torch
 import pickle
 import pandas as pd
 import os
-import warnings
+import numpy as np
+import random
 
-# Suppress only FutureWarnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
-def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, treatment= '', cat_list=[0, 1], moderator =None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name = 'potential_outcome'):
-
+def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed=None, treatment='', cat_list=[0, 1],
+        moderator=None, quant_mod=4, mediator=None, outcome=None, inv_datafile_name='potential_outcome'):
     results_df = pd.DataFrame(columns=["Potential Outcome", "Value"])
 
     # Identify whether the system has a GPU, if yes it sets the device to "cuda:0" else "cpu"
-    device = "cpu" if not(torch.cuda.is_available()) else "cuda:0"
+    device = "cpu" if not (torch.cuda.is_available()) else "cuda:0"
 
     path_save = os.path.join(path, model_name)
 
@@ -47,6 +46,20 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
     # Import multivariate normal distribution from PyTorch distributions module
     from torch.distributions.multivariate_normal import MultivariateNormal
 
+    # Set the seed for random number generation. If not provided, select a random seed between 1 and 20000
+    if seed is None:
+        seed = random.randint(1, 20000)
+
+    # setting the seed for random number generators in python, numpy and pytorch for reproducible results
+    random.seed(seed)
+    np.random.seed(seed=seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True  # ensures that the CUDA backend for PyTorch (CuDNN) uses deterministic algorithms.
+        torch.backends.cudnn.benchmark = True  # enables the CuDNN autotuner, which selects the best algorithm for CuDNN operations given the current hardware setup.
+
     # Disable gradient calculation to save memory and computation during inference
     with torch.no_grad():
         # Define a multivariate normal distribution with mean 0 (torch.zeros) and identity covariance matrix (torch.eye)
@@ -64,7 +77,6 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
 
         # Create a tensor that contains all possible categories for our treatments.
         all_a = torch.tensor(cat_list).unsqueeze(1).float()
-
 
         # Add an extra dimension to z_do tensor at position 1 (making it a 3D tensor), and replicate the original dimension to the new one. The number of times it is replicated corresponds to the number of treatment categories (i.e., the size of all_a along the 0th dimension). The resulting tensor, z_do_n, has dimensions  (n_mce_samples, number of treatment categories, dim).
         # z_do_n =
@@ -92,22 +104,24 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
         # z_do_n =
         # [
         #     [[0, a2], [1, a2]],
-        #     [[0, c2], [1, d2]],
-        #     [[0, e2], [1, f2]],
-        #     [[0, g2], [1, h2]]
+        #     [[0, b2], [1, b2]],
+        #     [[0, c2], [1, c2]],
+        #     [[0, d2], [1, d2]]
         #     ...
         # ]
-        z_do_n[:,:,list([loc_treatment])] = all_a_n
+        z_do_n[:, :, list([loc_treatment])] = all_a_n
 
         # Reshape z_do_n for processing (prepare it for 'model.invert') and move to appropriate device (GPU if available or CPU)
-        z_do_n = z_do_n.transpose_(1,0).reshape(-1,dim).to(device)#.view(-1,n_samples,dim)
+        z_do_n = z_do_n.transpose_(1, 0).reshape(-1, dim).to(device)  # .view(-1,n_samples,dim)
 
     # Counterfactual inference block
     with torch.no_grad():
         # Perform counterfactual inference by applying all treatments for all units through a invertible flow of the model (model.intvert)
-        cur_x_do_inv = model.invert(z_do_n, do_idx=list([loc_treatment]), do_val=torch.narrow(z_do_n,1,min(list([loc_treatment])),len(list([loc_treatment]))))
+        cur_x_do_inv = model.invert(z_do_n, do_idx=list([loc_treatment]),
+                                    do_val=torch.narrow(z_do_n, 1, min(list([loc_treatment])),
+                                                        len(list([loc_treatment]))))
         # Reshape the results. The final shape of cur_x_do_inv after the view operation is [all_a.shape[0], n_mce_samples, dim].
-        cur_x_do_inv = cur_x_do_inv.view(-1,n_mce_samples,dim)
+        cur_x_do_inv = cur_x_do_inv.view(-1, n_mce_samples, dim)
 
         # Reshape the tensor to 2D
         cur_x_do_inv_2d = cur_x_do_inv.reshape(-1, cur_x_do_inv.shape[-1])
@@ -141,11 +155,12 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
             x_control = cur_x_do_inv[0, :, loc_treatment]
             x_treatment = cur_x_do_inv[1, :, loc_treatment]
 
-            z_do_n_clone = z_do.unsqueeze(1).expand(-1, 1, -1).clone().to(device)
-            z_do_n_clone = z_do_n_clone.transpose_(1, 0).reshape(-1, dim).to(device)
+            # Duplicate a Tensor with Z noise for mediation analysis
+            z_do_n_med = z_do.unsqueeze(1).expand(-1, 1, -1).clone().to(device)
+            z_do_n_med = z_do_n_med.transpose_(1, 0).reshape(-1, dim).to(device)
 
-            cur_x_pse_dict = {}
-            inv_output_pse_dict = {}
+            cur_x_med_dict = {}
+            inv_output_med_dict = {}
 
             for i in range(n_mediators):
                 # For each mediator, generate a CSV file for control and treatment values
@@ -163,39 +178,67 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
 
                     # 'do' operation and inversion
                     do_val = torch.stack(do_values, -1)
-                    cur_x_pse = model.invert(z_do_n_clone, do_idx=[loc_treatment] + loc_mediator[:i + 1], do_val=do_val)
-                    cur_x_pse = cur_x_pse.view(-1, n_mce_samples, dim)
+                    cur_x_med = model.invert(z_do_n_med, do_idx=[loc_treatment] + loc_mediator[:i + 1], do_val=do_val)
+                    cur_x_med = cur_x_med.view(-1, n_mce_samples, dim)
 
                     # Reshape and convert to DataFrame
-                    cur_x_pse_2d = cur_x_pse.reshape(-1, cur_x_do_inv.shape[-1])
-                    inv_output_pse = pd.DataFrame(cur_x_pse_2d.cpu().detach().numpy())
+                    cur_x_med_2d = cur_x_med.reshape(-1, cur_x_do_inv.shape[-1])
+                    inv_output_med = pd.DataFrame(cur_x_med_2d.cpu().detach().numpy())
 
-                    # Store the cur_x_pse and inv_output in dictionaries
-                    cur_x_pse_dict[f"m{i + 1}_{val}"] = cur_x_pse
-                    inv_output_pse_dict[f"m{i + 1}_{val}"] = inv_output_pse
+                    # Store the cur_x_med and inv_output in dictionaries
+                    cur_x_med_dict[f"m{i + 1}_{val}"] = cur_x_med
+                    inv_output_med_dict[f"m{i + 1}_{val}"] = inv_output_med
 
                     # Set the column names and save to CSV
-                    inv_output_pse.columns = variable_list
-                    inv_output_pse.to_csv(f"{path}{inv_datafile_name}_m{i + 1}_{val}.csv")
+                    inv_output_med.columns = variable_list
+                    inv_output_med.to_csv(f"{path}{inv_datafile_name}_m{i + 1}_{val}.csv")
 
             if moderator:
+
+                # Create the potential outcome Dataframe prior to intervention
+                z_do_n_mod = z_do.unsqueeze(1).expand(-1, all_a.shape[0], -1).clone().to(device)
+                z_do_n_mod = z_do_n_mod.transpose_(1, 0).reshape(-1, dim).to(device)
+                cur_x_mod = model.invert(z_do_n_mod)
+
+                # Prepare for the update of inv_output
+                cur_x_mod_med = cur_x_mod[:cur_x_mod.shape[0] // all_a.shape[0]]
+                cur_x_mod_med_2d = cur_x_mod_med.reshape(-1, cur_x_mod_med.shape[-1])
+                inv_output_mod_med = pd.DataFrame(cur_x_mod_med_2d.cpu().detach().numpy())
+                inv_output_mod_med.columns = variable_list
+
+                # Reshape the tensor to 2D
+                cur_x_mod = cur_x_mod.view(-1, n_mce_samples, dim)
+                cur_x_mod_2d = cur_x_mod.reshape(-1, cur_x_mod.shape[-1])
+                # Convert the tensor to a numpy array and then to a pandas DataFrame
+                inv_output_mod = pd.DataFrame(cur_x_mod_2d.cpu().detach().numpy())
+
+                # Set the column names
+                inv_output_mod.columns = variable_list
+
+                # Update the inv_output
+                inv_output[f"condition={moderator}"] = inv_output_mod[moderator].values
                 # Get unique values of the moderator variable
-                unique_moderator_values = inv_output[moderator].unique()
+                unique_moderator_values = inv_output[f"condition={moderator}"].unique()
+
+                # Update the CSV file
+                inv_output.to_csv(path + inv_datafile_name + f'.csv')
 
                 if len(unique_moderator_values) > 10:
                     quartile_labels, quartile_intervals = pd.qcut(inv_output[moderator], q=quant_mod, retbins=True)
-                    inv_output[moderator] = quartile_labels
-                    quartiles = inv_output[moderator].cat.categories
+                    inv_output[f"condition={moderator}"] = quartile_labels
+                    quartiles = inv_output[f"condition={moderator}"].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
 
                         # Main DataFrame subset where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[moderator] == q]
+                        subset_df = inv_output[inv_output[f"condition={moderator}"] == q]
 
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
                             conditional_mean = sub_subset_df[outcome].mean()
-                            new_row = pd.DataFrame({"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={q})]", "Value": conditional_mean}, index=[0])
+                            new_row = pd.DataFrame(
+                                {"Potential Outcome": f"E[{outcome}({treatment}={t_val} | {moderator}={q})]",
+                                 "Value": conditional_mean}, index=[0])
                             results_df = pd.concat([results_df, new_row], ignore_index=True)
 
                         # Loop through each mediator to print the expected outcomes for different combinations
@@ -203,28 +246,38 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_series = inv_output[moderator] == q
+                                moderator_series = inv_output[f"condition={moderator}"] == q
+
+                                # Insert moderator column into the final output Dataframe
+                                inv_output_med_dict[f"m{i + 1}_{val}"][f"condition={moderator}"] = inv_output_mod_med[
+                                    moderator].values
+
+                                # Update all mediation CSV file
+                                inv_output_med.to_csv(f"{path}{inv_datafile_name}_m{i + 1}_{val}.csv")
 
                                 # Subset the DataFrame for the current mediator and treatment level using the moderator condition
-                                subset_df_mediator = inv_output_pse_dict[f"m{i + 1}_{val}"][
-                                    moderator_series.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index,
-                                                                fill_value=False)]
+                                subset_df_mediator = inv_output_med_dict[f"m{i + 1}_{val}"][
+                                    moderator_series.reindex(inv_output_med_dict[f"m{i + 1}_{val}"].index,
+                                                             fill_value=False)]
 
                                 # Perform calculations for mean counterfactual outcome under different moderator values
                                 m_moderated_mean = subset_df_mediator[outcome].mean()
 
                                 for j in range(i + 1):  # Include all mediators up to i
-                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
+                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[
+                                                                                             j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})"
+                                                                     for j in range(i + 1)])
                                 new_row = pd.DataFrame(
-                                    {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})]",
-                                     "Value": m_moderated_mean}, index=[0])
+                                    {
+                                        "Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={q})]",
+                                        "Value": m_moderated_mean}, index=[0])
                                 results_df = pd.concat([results_df, new_row], ignore_index=True)
 
                 else:
                     for mod_val in unique_moderator_values:
 
                         # Main DataFrame subset where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[moderator] == mod_val]
+                        subset_df = inv_output[inv_output[f"condition={moderator}"] == mod_val]
 
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
@@ -239,20 +292,31 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_series = inv_output[moderator] == mod_val
+                                moderator_series = inv_output[f"condition={moderator}"] == mod_val
+
+                                # Insert moderator column into the final output Dataframe
+                                inv_output_med_dict[f"m{i + 1}_{val}"][f"condition={moderator}"] = inv_output_mod_med[
+                                    moderator].values
+
+                                # Update all mediation CSV file
+                                inv_output_med.to_csv(f"{path}{inv_datafile_name}_m{i + 1}_{val}.csv")
 
                                 # Subset the DataFrame for the current mediator and treatment level using the moderator condition
-                                subset_df_mediator = inv_output_pse_dict[f"m{i + 1}_{val}"][
-                                    moderator_series.reindex(inv_output_pse_dict[f"m{i + 1}_{val}"].index, fill_value=False)]
+                                subset_df_mediator = inv_output_med_dict[f"m{i + 1}_{val}"][
+                                    moderator_series.reindex(inv_output_med_dict[f"m{i + 1}_{val}"].index,
+                                                             fill_value=False)]
 
                                 # Perform calculations for mean counterfactual outcome under different moderator values
                                 m_moderated_mean = subset_df_mediator[outcome].mean()
 
                                 for j in range(i + 1):  # Include all mediators up to i
-                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
+                                    mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[
+                                                                                             j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})"
+                                                                     for j in range(i + 1)])
                                 new_row = pd.DataFrame(
-                                    {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})]",
-                                     "Value": m_moderated_mean}, index=[0])
+                                    {
+                                        "Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions} | {moderator}={mod_val})]",
+                                        "Value": m_moderated_mean}, index=[0])
                                 results_df = pd.concat([results_df, new_row], ignore_index=True)
 
             else:
@@ -279,29 +343,53 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
                 # Loop through each mediator to print the expected outcomes for different combinations
                 for i in range(len(mediator)):
                     for val in ['0', '1']:  # Control and treatment
-                        cur_x_pse_mean = cur_x_pse_dict[f"m{i + 1}_{val}"].mean(1).cpu().numpy().squeeze()
-                        E_Y[f"m{i + 1}_{val}"] = cur_x_pse_mean[loc_outcome]
+                        cur_x_med_mean = cur_x_med_dict[f"m{i + 1}_{val}"].mean(1).cpu().numpy().squeeze()
+                        E_Y[f"m{i + 1}_{val}"] = cur_x_med_mean[loc_outcome]
 
                         for j in range(i + 1):  # Include all mediators up to i
-                            mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})" for j in range(i + 1)])
+                            mediator_conditions = ", ".join([f"{mediator[j]}" if mediator_values[
+                                                                                     j] is not None else f"{mediator[j]}({treatment}={cat_list[1 if int(val) == 0 else 0]})"
+                                                             for j in range(i + 1)])
                         new_row = pd.DataFrame(
-                            {"Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions})]",
-                             "Value": E_Y[f'm{i + 1}_{val}']}, index=[0])
+                            {
+                                "Potential Outcome": f"E[{outcome}({treatment}={cat_list[int(val)]}, {mediator_conditions})]",
+                                "Value": E_Y[f'm{i + 1}_{val}']}, index=[0])
                         results_df = pd.concat([results_df, new_row], ignore_index=True)
 
         else:
             # If the moderator variable is specified
             if moderator:
+
+                # Create the potential outcome Dataframe prior to intervention
+                z_do_n_mod = z_do.unsqueeze(1).expand(-1, all_a.shape[0], -1).clone().to(device)
+                z_do_n_mod = z_do_n_mod.transpose_(1, 0).reshape(-1, dim).to(device)
+                cur_x_mod = model.invert(z_do_n_mod)
+                cur_x_mod = cur_x_mod.view(-1, n_mce_samples, dim)
+
+                # Reshape the tensor to 2D
+                cur_x_mod_2d = cur_x_mod.reshape(-1, cur_x_mod.shape[-1])
+                # Convert the tensor to a numpy array and then to a pandas DataFrame
+                inv_output_mod = pd.DataFrame(cur_x_mod_2d.cpu().detach().numpy())
+
+                # Set the column names
+                inv_output_mod.columns = variable_list
+
+                # Update the inv_output
+                inv_output[f"condition={moderator}"] = inv_output_mod[moderator].values
                 # Get unique values of the moderator variable
-                unique_moderator_values = inv_output[moderator].unique()
+                unique_moderator_values = inv_output[f"condition={moderator}"].unique()
+
+                # Update the CSV file
+                inv_output.to_csv(path + inv_datafile_name + f'.csv')
 
                 if len(unique_moderator_values) > 10:
-                    quartile_labels, quartile_intervals = pd.qcut(inv_output[moderator], q=quant_mod, retbins=True)
-                    inv_output[moderator] = quartile_labels
-                    quartiles = inv_output[moderator].cat.categories
+                    quartile_labels, quartile_intervals = pd.qcut(inv_output[f"condition={moderator}"], q=quant_mod,
+                                                                  retbins=True)
+                    inv_output[f"condition={moderator}"] = quartile_labels
+                    quartiles = inv_output[f"condition={moderator}"].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
-                        subset_df = inv_output[inv_output[moderator] == q]
+                        subset_df = inv_output[inv_output[f"condition={moderator}"] == q]
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
                             conditional_mean = sub_subset_df[outcome].mean()
@@ -314,7 +402,7 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
                     # For each unique value of the moderator variable
                     for val in unique_moderator_values:
                         # Subset the DataFrame where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[moderator] == val]
+                        subset_df = inv_output[inv_output[f"condition={moderator}"] == val]
                         # For each unique value of the treatment variable
                         for t_val in cat_list:
                             # Further subset the DataFrame where the treatment equals the current unique value
@@ -337,6 +425,6 @@ def sim(path="", dataset_name="", model_name ="models", n_mce_samples = 10000, t
                          "Value": counter_mean}, index=[0])
                     results_df = pd.concat([results_df, new_row], ignore_index=True)
 
-
     results_df.to_csv(f"{path}{inv_datafile_name}_results.csv", index=False)
     return results_df
+
