@@ -217,22 +217,22 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                 inv_output_mod.columns = variable_list
 
                 # Update the inv_output
-                inv_output[f"condition={moderator}"] = inv_output_mod[moderator].values
+                inv_output[f"Observed_{moderator}"] = inv_output_mod[moderator].values
                 # Get unique values of the moderator variable
-                unique_moderator_values = inv_output[f"condition={moderator}"].unique()
+                unique_moderator_values = inv_output[f"Observed_{moderator}"].unique()
 
                 # Update the CSV file
                 inv_output.to_csv(path + inv_datafile_name + f'.csv')
 
                 if len(unique_moderator_values) > 10:
-                    quartile_labels, quartile_intervals = pd.qcut(inv_output[moderator], q=quant_mod, retbins=True)
-                    inv_output[f"condition={moderator}"] = quartile_labels
-                    quartiles = inv_output[f"condition={moderator}"].cat.categories
+                    quartile_labels, quartile_intervals = pd.qcut(inv_output[f"Observed_{moderator}"], q=quant_mod, retbins=True)
+                    inv_output[f"Observed_{moderator}"] = quartile_labels
+                    quartiles = inv_output[f"Observed_{moderator}"].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
 
                         # Main DataFrame subset where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[f"condition={moderator}"] == q]
+                        subset_df = inv_output[inv_output[f"Observed_{moderator}"] == q]
 
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
@@ -247,10 +247,10 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_series = inv_output[f"condition={moderator}"] == q
+                                moderator_series = inv_output[f"Observed_{moderator}"] == q
 
                                 # Insert moderator column into the final output Dataframe
-                                inv_output_med_dict[f"m{i + 1}_{val}"][f"condition={moderator}"] = inv_output_mod_med[
+                                inv_output_med_dict[f"m{i + 1}_{val}"][f"Observed_{moderator}"] = inv_output_mod_med[
                                     moderator].values
 
                                 # Update all mediation CSV file
@@ -278,7 +278,7 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                     for mod_val in unique_moderator_values:
 
                         # Main DataFrame subset where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[f"condition={moderator}"] == mod_val]
+                        subset_df = inv_output[inv_output[f"Observed_{moderator}"] == mod_val]
 
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
@@ -293,10 +293,10 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                             for val in ['0', '1']:  # Control and treatment
 
                                 # Get the boolean series for the current value of the moderator from the DataFrame
-                                moderator_series = inv_output[f"condition={moderator}"] == mod_val
+                                moderator_series = inv_output[f"Observed_{moderator}"] == mod_val
 
                                 # Insert moderator column into the final output Dataframe
-                                inv_output_med_dict[f"m{i + 1}_{val}"][f"condition={moderator}"] = inv_output_mod_med[
+                                inv_output_med_dict[f"m{i + 1}_{val}"][f"Observed_{moderator}"] = inv_output_mod_med[
                                     moderator].values
 
                                 # Update all mediation CSV file
@@ -376,21 +376,21 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                 inv_output_mod.columns = variable_list
 
                 # Update the inv_output
-                inv_output[f"condition={moderator}"] = inv_output_mod[moderator].values
+                inv_output[f"Observed_{moderator}"] = inv_output_mod[moderator].values
                 # Get unique values of the moderator variable
-                unique_moderator_values = inv_output[f"condition={moderator}"].unique()
+                unique_moderator_values = inv_output[f"Observed_{moderator}"].unique()
 
                 # Update the CSV file
                 inv_output.to_csv(path + inv_datafile_name + f'.csv')
 
                 if len(unique_moderator_values) > 10:
-                    quartile_labels, quartile_intervals = pd.qcut(inv_output[f"condition={moderator}"], q=quant_mod,
+                    quartile_labels, quartile_intervals = pd.qcut(inv_output[f"Observed_{moderator}"], q=quant_mod,
                                                                   retbins=True)
-                    inv_output[f"condition={moderator}"] = quartile_labels
-                    quartiles = inv_output[f"condition={moderator}"].cat.categories
+                    inv_output[f"Observed_{moderator}"] = quartile_labels
+                    quartiles = inv_output[f"Observed_{moderator}"].cat.categories
 
                     for idx, q in enumerate(quartiles, start=1):
-                        subset_df = inv_output[inv_output[f"condition={moderator}"] == q]
+                        subset_df = inv_output[inv_output[f"Observed_{moderator}"] == q]
                         for t_val in cat_list:
                             sub_subset_df = subset_df[subset_df[treatment] == t_val]
                             conditional_mean = sub_subset_df[outcome].mean()
@@ -403,7 +403,7 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
                     # For each unique value of the moderator variable
                     for val in unique_moderator_values:
                         # Subset the DataFrame where the moderator equals the current unique value
-                        subset_df = inv_output[inv_output[f"condition={moderator}"] == val]
+                        subset_df = inv_output[inv_output[f"Observed_{moderator}"] == val]
                         # For each unique value of the treatment variable
                         for t_val in cat_list:
                             # Further subset the DataFrame where the treatment equals the current unique value
