@@ -98,8 +98,8 @@ class NormalizingFlowStep(NormalizingFlow):
 #         print(f'f_x_unnorm=\n{x_unnorm[:4]}')
 #         print(f'f_x=\n{x[:4]}')
 
-        if self.training:
-            if self.cat_dims is not None:
+        # if self.training:
+        if self.cat_dims is not None:
     #             keys = self.cat_dims.keys()
                 keys = list(self.cat_dims)#.keys()
     #             print(keys)
@@ -111,7 +111,7 @@ class NormalizingFlowStep(NormalizingFlow):
 #                     u_noise[:,keys] -= self.mu.data[keys]
 #                     u_noise[:,keys] /= self.sigma.data[keys]
 #                     u_noise[:,keys] = torch.normal(0.0, (self.sigma.data[keys].reciprocal()/6/4).expand(torch.Size([x.shape[0], len(keys)]))).to(x.device)
-                    u_noise[:,keys] = torch.normal(0.0, (self.sigma.data[keys].reciprocal()/6).expand(torch.Size([x.shape[0], len(keys)]))).to(x.device)
+                    u_noise[:,keys] = torch.normal(0.0, (self.sigma.data[keys].reciprocal()/8).expand(torch.Size([x.shape[0], len(keys)]))).to(x.device)
 #                     u_noise[:,keys] = torch.normal(0.0, (self.sigma.data[keys]/(6)).expand(torch.Size([x.shape[0], len(keys)]))).to(x.device)
 #                     u_noise[:,keys] = torch.normal(u_noise[:,keys],1/(6*4)).float().to(x.device)
 #                     u_noise[:,keys] = torch.normal(u_noise[:,keys],1/(6)).float().to(x.device)
