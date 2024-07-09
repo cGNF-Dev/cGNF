@@ -148,7 +148,7 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
             # Check if mediator values are specified
             specified_values = [m.split('=') if '=' in m else None for m in mediator]
             mediator_names = [s[0] if s else m for s, m in zip(specified_values, mediator)]
-            mediator_values = [float(s[1]) if s else None for s in specified_values]
+            mediator_values = [s[1] if s else None for s in specified_values]
 
             # Get the location of mediators in the variable list
             loc_mediator = [variable_list.index(m) for m in mediator_names]
@@ -161,19 +161,45 @@ def sim(path="", dataset_name="", model_name="models", n_mce_samples=10000, seed
             z_do_n_med = z_do.unsqueeze(1).expand(-1, 1, -1).clone().to(device)
             z_do_n_med = z_do_n_med.transpose_(1, 0).reshape(-1, dim).to(device)
 
+            # Initialize dictionaries to store per-mediator tensors
             cur_x_med_dict = {}
             inv_output_med_dict = {}
 
+            Z_do_js = {}
+            z_do_js = {}
+            z_do_n_js = {}
+
+            cur_x_do_inv_js = {}
+
             for i in range(n_mediators):
-                # For each mediator, generate a CSV file for control and treatment values
                 for val in ['0', '1']:  # Control and treatment
                     do_values = [x_treatment if val == '1' else x_control]
 
                     for j in range(i + 1):  # Include all mediators up to i
                         if mediator_values[j] is not None:  # If a specific value is provided
-                            m_value = torch.tensor(mediator_values[j]).expand(n_mce_samples).to(device)
-                            do_values.append(m_value)
+                            if mediator_values[j] == "intv":  # Checking for interventional effect flag
+                                # Draw new Z_do for mediator[j]
+                                Z_do_js[j] = MultivariateNormal(torch.zeros(dim), Z_Sigma)
+                                z_do_js[j] = Z_do_js[j].sample(torch.Size([n_mce_samples])).to(device)
+                                z_do_n_js[j] = z_do_js[j].unsqueeze(1).expand(-1, all_a.shape[0], -1).clone().to(device)
+                                z_do_n_js[j][:, :, list([loc_treatment])] = all_a_n
+                                z_do_n_js[j] = z_do_n_js[j].transpose_(1, 0).reshape(-1, dim).to(device)
+
+                                cur_x_do_inv_js[j] = model.invert(z_do_n_js[j], do_idx=list([loc_treatment]),
+                                                                  do_val=torch.narrow(z_do_n_js[j], 1,
+                                                                                      min(list([loc_treatment])),
+                                                                                      len(list([loc_treatment]))))
+                                cur_x_do_inv_js[j] = cur_x_do_inv_js[j].view(-1, n_mce_samples, dim)
+
+                                m_control = cur_x_do_inv_js[j][0, :, loc_mediator[j]]
+                                m_treatment = cur_x_do_inv_js[j][1, :, loc_mediator[j]]
+                                do_values.append(m_treatment if val == '0' else m_control)
+                            else:
+                                # Controlled effects
+                                m_value = torch.tensor(float(mediator_values[j])).expand(n_mce_samples).to(device)
+                                do_values.append(m_value)
                         else:
+                            # Path-specific effects
                             m_control = cur_x_do_inv[0, :, loc_mediator[j]]
                             m_treatment = cur_x_do_inv[1, :, loc_mediator[j]]
                             do_values.append(m_treatment if val == '0' else m_control)
