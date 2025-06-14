@@ -72,7 +72,7 @@ This guide walks you through setting up the Python environment and utilizing `cG
    Install the `cGNF` package:
 
      ```bash
-     pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple cGNF
+     pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ cGNF
      ```
 
    To update the package in the future:
